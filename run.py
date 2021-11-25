@@ -1,0 +1,27 @@
+import sys
+import subprocess
+from datetime import datetime
+
+import os
+
+
+try:
+    subprocess.Popen([sys.executable, "backend/oopdatafeed.py"])
+    subprocess.Popen([sys.executable, "backend/oopdatafeedamp.py"])
+    subprocess.Popen([sys.executable, "backend/api.py"])
+except:
+    print('ERROR')
+
+
+os.chdir('my-app4')
+os.system('ng serve --prod --host 0.0.0.0 --disable-host-check')
+os.system('ng serve --open')
+
+
+'''
+while True:
+    dt = datetime.now()
+    if dt.second == 1:
+        subprocess.Popen([sys.executable, "oopdatafeed.py"])
+        break
+'''

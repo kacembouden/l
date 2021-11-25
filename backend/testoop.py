@@ -87,3 +87,8 @@ else:
 
 # shut down connection to the MetaTrader 5 terminal
 mt5.shutdown()
+
+l = list(t.cons_D['cycle'][t.starting_index_D::])
+res123 = l.index([idx for idx in l if idx.startswith('O')][0])
+if t.cons_D['con_sma5'][t.starting_index_D + res123 ]:
+    t.final_U += 'sma'

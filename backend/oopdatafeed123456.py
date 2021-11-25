@@ -23,7 +23,7 @@ class Datafeed(object):
                  'EU50Cash', 'GER40Cash']
 
     tfs = [mt5.TIMEFRAME_M2, mt5.TIMEFRAME_M5, mt5.TIMEFRAME_M15, mt5.TIMEFRAME_H1, mt5.TIMEFRAME_H4,
-           mt5.TIMEFRAME_D1, mt5.TIMEFRAME_W1, mt5.TIMEFRAME_MN1]
+           mt5.TIMEFRAME_D1, mt5.TIMEFRAME_W1, mt5.TIMEFRAME_D1]
 
     def __init__(self, currency, TF):
         self.currency = currency
@@ -91,8 +91,6 @@ class Datafeed(object):
         self.computeRSI(rates_frame, 14)
         self.compute_stock(rates_frame)
         self.computeTenken(rates_frame)
-        period = 10
-        self.computeSMA(rates_frame, period)
         period = 12
         self.computeEMA(rates_frame, period)
         period = 18
@@ -353,16 +351,6 @@ class Conditions(Datafeed):
         self.cons_D['con_stock_up'] = self.df['stock_tf' + str(self.tfs[self.tfs.index(self.TF) + 1])] > 75
         return self.cons
 
-    def con_sma_acc(self):
-        self.cons['con_sma10'] = self.ema_cons['con_ema20_' + str(self.TF)] = self.df[
-            'sma_tf' + str(self.TF) + '_' + str(10)] < self.df[
-            'ema_tf' + str(self.TF) + '_' + str(20)]
-        ###############################
-        self.cons_D['con_sma10'] = self.ema_cons_D['con_ema20_' + str(self.TF)] = self.df[
-            'sma_tf' + str(self.TF) + '_' + str(10)] > self.df[
-            'ema_tf' + str(self.TF) + '_' + str(20)]
-        return self.cons
-
     def con_acc(self):
         self.cons['acc'] = ((self.cons['con_rsi3']) & (self.cons['con_rsi14_add']) & (self.cons['all_trend_tfs']))
         #######################
@@ -511,13 +499,8 @@ class Conditions(Datafeed):
         if self.starting_index is not None:
             if 'chay' not in list(self.cons['cycle'][self.starting_index::]):
                 self.final_U = self.cons['cycle'].iloc[-1]
-                if (not self.cons['con_rsi14_up2'].iloc[-1]) and self.cons['con_rsi14_up'].iloc[-5:-1].any():
+                if not self.cons['con_rsi14_up2'].iloc[-1]:
                     self.final_U += 'rsi'
-                if self.final_U in ['O' , 'Or', 'Oj', 'Ojr']:
-                    l = list(self.cons['cycle'][self.starting_index::])
-                    res123 = l.index([idx for idx in l if idx.startswith('O')][0])
-                    if self.cons['con_sma10'][self.starting_index + res123 ]:
-                        self.final_U += 'sma'
 
         return self.final_U
 
@@ -526,14 +509,8 @@ class Conditions(Datafeed):
         if self.starting_index_D is not None:
             if 'chay' not in list(self.cons_D['cycle'][self.starting_index_D::]):
                 self.final_D = self.cons_D['cycle'].iloc[-1]
-                if (not self.cons_D['con_rsi14_up2'].iloc[-1]) and self.cons_D['con_rsi14_up'].iloc[-5:-1].any():
+                if not self.cons_D['con_rsi14_up2'].iloc[-1]:
                     self.final_D += 'rsi'
-                if self.final_D in ['O', 'Or', 'Oj', 'Ojr']:
-                    l = list(self.cons_D['cycle'][self.starting_index_D::])
-                    res123 = l.index([idx for idx in l if idx.startswith('O')][0])
-                    if self.cons_D['con_sma10'][self.starting_index_D + res123 ]:
-                        self.final_D += 'sma'
-
         return self.final_D
 
     def signal(self):
@@ -551,7 +528,6 @@ class Conditions(Datafeed):
         self.con_tendence()
         self.con_stock()
         self.con_acc()
-        self.con_sma_acc()
         self.trt()
         self.con_rsi14_up()
         # if self.TF != mt5.TIMEFRAME_D1:
@@ -832,6 +808,7 @@ class Manage(Conditions, Eng):
         deleted_objects = Ud.__table__.delete()
         db.session.execute(deleted_objects)
         db.session.commit()
+
         for i in range(len(df_final)):
             item = Item(name=self.currencys[i], M1=df_final['M2'][i], M5=df_final['M5'][i], M15=df_final['M15'][i],
                         H1=df_final['H1'][i], H4=df_final['H4'][i], D1=df_final['D1'][i])
@@ -888,7 +865,6 @@ class Manage(Conditions, Eng):
             print(updated)
             print(df_final)
             print(df_final_eng)
-
 
 
 '''
@@ -1133,16 +1109,16 @@ mini = ['M2', 'M5', 'M15', 'H1', 'H4', 'D1']
 for i in mini:
     if i != 'D1':
         for j in range(len(d) - 1):
-            if (d[i][j] == 'O' or d[i][j] == 'Oj' or d[i][j] == 'Orsi' or d[i][j] == 'Ojrsi' or d[i][j] == 'Osma' or d[i][j] == 'Ojsma' or d[i][j] == 'Orsisma' or d[i][j] == 'Ojrsisma') and (
+            if (d[i][j] == 'O' or d[i][j] == 'Oj' or d[i][j] == 'Orsi' or d[i][j] == 'Ojrsi') and (
                     d_eng[mini[mini.index(i) + 1]][j] == 'D' or d_eng[mini[mini.index(i) + 1]][j] == 'D_3' or
                     d_eng[mini[mini.index(i) + 1]][j] == 'D_14'):
                 d[i][j] = 'X'
-                chime.success()
-            if (d[i][j] == 'Or' or d[i][j] == 'Ojr'  or d[i][j] == 'Orrsi' or d[i][j] == 'Ojrrsi' or d[i][j] == 'Orsma' or d[i][j] == 'Ojrsma'  or d[i][j] == 'Orrsisma' or d[i][j] == 'Ojrrsisma') and (
+                chime.warning()
+            if (d[i][j] == 'Or' or d[i][j] == 'Ojr'  or d[i][j] == 'Orrsi' or d[i][j] == 'Ojrrsi') and (
                     d_eng[mini[mini.index(i) + 1]][j] == 'U' or d_eng[mini[mini.index(i) + 1]][j] == 'U_3' or
                     d_eng[mini[mini.index(i) + 1]][j] == 'U_14'):
                 d[i][j] = 'Xr'
-                chime.success()
+                chime.warning()
 
 t.to_db(d, d_eng)
 

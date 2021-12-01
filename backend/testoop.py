@@ -1,6 +1,6 @@
 
 
-t = Conditions('EURUSD', mt5.TIMEFRAME_H4)
+t = Conditions('EURUSD', mt5.TIMEFRAME_M15)
 
 t.Traitement()
 
@@ -92,3 +92,49 @@ l = list(t.cons_D['cycle'][t.starting_index_D::])
 res123 = l.index([idx for idx in l if idx.startswith('O')][0])
 if t.cons_D['con_sma5'][t.starting_index_D + res123 ]:
     t.final_U += 'sma'
+
+if not mt5.initialize(r"C:\Program Files\FBS MetaTrader 5\terminal64.exe"):
+    print("initialize() failed, error code =", mt5.last_error())
+
+
+request = {
+    "action": mt5.TRADE_ACTION_PENDING,
+    "symbol": symbol,
+    "volume": lot3,
+    "type": mt5.ORDER_TYPE_BUY_LIMIT,
+    "price": price + spread_in_point,
+    "sl": sl1,
+    "tp": t.res_D['ema_tf15_12'].iloc[-1],
+    "deviation": deviation,
+    "magic": 234000,
+    "comment": "python script open",
+    "type_time": mt5.ORDER_TIME_SPECIFIED,
+    "expiration": exp_date,
+    "type_filling": mt5.ORDER_FILLING_FOK,
+}
+
+mt5.order_send(request)
+
+(t.df['close_tf' + str(t.TF)] < t.df['open_tf' + str(t.TF)]) & (t.df['close_tf' + str(t.TF)].shift(+1) > t.df['open_tf' + str(t.TF)].shift(+1)) & (t.df['close_tf' + str(t.TF)] < t.df['low_tf' + str(t.TF)].shift(+1)) & (t.df['rsi_tf' + str(t.TF) + '_' + str(3)] < 75)
+
+
+rr = t.cons['acc'][::-1].idxmax()
+
+rr1 = t.cons['acc'][:rr][::-1].idxmin()
+
+rr2 = t.cons['acc'][:rr1][::-1].idxmax()
+
+rr3 = t.cons['acc'][:rr2][::-1].idxmin()
+
+t.cons['acc'].iloc[rr1+1 : rr+1]
+
+t.cons['acc'].iloc[rr3+1 : rr2+1]
+
+rsidiv1 = t.df['rsi_tf' + str(t.TF) + '_14'].iloc[rr1+1 : rr+1].max()
+
+rsidiv2 = t.df['rsi_tf' + str(t.TF) + '_14'].iloc[rr3+1 : rr2+1].max()
+
+rsimindiv = t.df['rsi_tf' + str(t.TF) + '_14'].iloc[rr3+1 : rr2+1].min()
+
+if rsimindiv > 50 and rsidiv1 < rsidiv2:
+    divergence = True

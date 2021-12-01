@@ -213,8 +213,8 @@ class Conditions(Datafeed):
                     (self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_H1)]) &
                     (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_M15)]) &
                     (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_H1)]) &
-                    ((self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_H4)]) &
-                     (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_H4)]) |
+                    (((self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_H4)]) &
+                      (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_H4)])) |
                      ((self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_D1)]) &
                       (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_D1)])))
             )
@@ -225,10 +225,12 @@ class Conditions(Datafeed):
 
                     (self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_H1)]) &
                     (self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_H4)]) &
-                    (self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_D1)]) &
                     (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_H1)]) &
                     (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_H4)]) &
-                    (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_D1)])
+                    (((self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_D1)]) &
+                      (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_D1)])) |
+                     ((self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_W1)]) &
+                      (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_W1)])))
             )
         elif self.TF == mt5.TIMEFRAME_H4:
             self.cons['all_trend_tfs'] = (
@@ -237,7 +239,11 @@ class Conditions(Datafeed):
                     (self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_H4)]) &
                     (self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_D1)]) &
                     (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_H4)]) &
-                    (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_D1)])
+                    (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_D1)]) &
+                    (((self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_W1)]) &
+                      (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_W1)])) |
+                     ((self.ema_cons['con_ema20_' + str(mt5.TIMEFRAME_MN1)]) &
+                      (self.ema_cons['con_ema50_' + str(mt5.TIMEFRAME_MN1)])))
             )
 
         elif self.TF == mt5.TIMEFRAME_D1:
@@ -316,10 +322,14 @@ class Conditions(Datafeed):
 
                     (self.ema_cons_D['con_ema20_' + str(mt5.TIMEFRAME_H1)]) &
                     (self.ema_cons_D['con_ema20_' + str(mt5.TIMEFRAME_H4)]) &
-                    (self.ema_cons_D['con_ema20_' + str(mt5.TIMEFRAME_D1)]) &
+
                     (self.ema_cons_D['con_ema50_' + str(mt5.TIMEFRAME_H1)]) &
                     (self.ema_cons_D['con_ema50_' + str(mt5.TIMEFRAME_H4)]) &
-                    (self.ema_cons_D['con_ema50_' + str(mt5.TIMEFRAME_D1)])
+
+                    (((self.ema_cons_D['con_ema20_' + str(mt5.TIMEFRAME_D1)]) &
+                      (self.ema_cons_D['con_ema50_' + str(mt5.TIMEFRAME_D1)])) |
+                     ((self.ema_cons_D['con_ema20_' + str(mt5.TIMEFRAME_W1)]) &
+                      (self.ema_cons_D['con_ema50_' + str(mt5.TIMEFRAME_W1)])))
             )
         elif self.TF == mt5.TIMEFRAME_H4:
             self.cons_D['all_trend_tfs'] = (
@@ -329,7 +339,11 @@ class Conditions(Datafeed):
                     (self.ema_cons_D['con_ema20_' + str(mt5.TIMEFRAME_H4)]) &
                     (self.ema_cons_D['con_ema20_' + str(mt5.TIMEFRAME_D1)]) &
                     (self.ema_cons_D['con_ema50_' + str(mt5.TIMEFRAME_H4)]) &
-                    (self.ema_cons_D['con_ema50_' + str(mt5.TIMEFRAME_D1)])
+                    (self.ema_cons_D['con_ema50_' + str(mt5.TIMEFRAME_D1)]) &
+                    (((self.ema_cons_D['con_ema20_' + str(mt5.TIMEFRAME_W1)]) &
+                      (self.ema_cons_D['con_ema50_' + str(mt5.TIMEFRAME_W1)])) |
+                     ((self.ema_cons_D['con_ema20_' + str(mt5.TIMEFRAME_MN1)]) &
+                      (self.ema_cons_D['con_ema50_' + str(mt5.TIMEFRAME_MN1)])))
             )
 
         elif self.TF == mt5.TIMEFRAME_D1:
@@ -354,20 +368,47 @@ class Conditions(Datafeed):
         return self.cons
 
     def con_sma_acc(self):
-        self.cons['con_sma10'] = self.ema_cons['con_ema20_' + str(self.TF)] = self.df[
-            'sma_tf' + str(self.TF) + '_' + str(10)] < self.df[
-            'ema_tf' + str(self.TF) + '_' + str(20)]
+        self.cons['con_sma10'] = self.df[
+                                     'sma_tf' + str(self.TF) + '_' + str(10)] <= self.df[
+                                     'ema_tf' + str(self.TF) + '_' + str(12)]
         ###############################
-        self.cons_D['con_sma10'] = self.ema_cons_D['con_ema20_' + str(self.TF)] = self.df[
-            'sma_tf' + str(self.TF) + '_' + str(10)] > self.df[
-            'ema_tf' + str(self.TF) + '_' + str(20)]
+        self.cons_D['con_sma10'] = self.df[
+                                       'sma_tf' + str(self.TF) + '_' + str(10)] >= self.df[
+                                       'ema_tf' + str(self.TF) + '_' + str(12)]
         return self.cons
 
     def con_acc(self):
         self.cons['acc'] = ((self.cons['con_rsi3']) & (self.cons['con_rsi14_add']) & (self.cons['all_trend_tfs']))
         #######################
         self.cons_D['acc'] = (
-                    (self.cons_D['con_rsi3']) & (self.cons_D['con_rsi14_add']) & (self.cons_D['all_trend_tfs']))
+                (self.cons_D['con_rsi3']) & (self.cons_D['con_rsi14_add']) & (self.cons_D['all_trend_tfs']))
+
+    def con_diver(self):
+        rr = self.cons['acc'][::-1].idxmax()
+        rr1 = self.cons['acc'][:rr][::-1].idxmin()
+        rr2 = self.cons['acc'][:rr1][::-1].idxmax()
+        rr3 = self.cons['acc'][:rr2][::-1].idxmin()
+        rsidiv1 = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr1 + 1: rr + 1].max()
+        rsidiv2 = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr3 + 1: rr2 + 1].max()
+        rsimindiv = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr3 + 1: rr2 + 1].min()
+        if rsimindiv >= 50 and rsidiv1 < rsidiv2 and rsidiv1 <= 75:
+            self.divergence = True
+        else :
+            self.divergence = False
+
+        #############################
+
+        rr_D = self.cons_D['acc'][::-1].idxmax()
+        rr1_D = self.cons_D['acc'][:rr_D][::-1].idxmin()
+        rr2_D = self.cons_D['acc'][:rr1_D][::-1].idxmax()
+        rr3_D = self.cons_D['acc'][:rr2_D][::-1].idxmin()
+        rsidiv1_D = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr1_D + 1: rr_D + 1].min()
+        rsidiv2_D = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr3_D + 1: rr2_D + 1].min()
+        rsimindiv_D = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr3_D + 1: rr2_D + 1].max()
+        if rsimindiv_D <= 50 and rsidiv1_D > rsidiv2_D and rsidiv1_D >= 25:
+            self.divergence_D = True
+        else :
+            self.divergence_D = False
 
     def trt(self):
         if self.cons['acc'].any():
@@ -513,11 +554,14 @@ class Conditions(Datafeed):
                 self.final_U = self.cons['cycle'].iloc[-1]
                 if (not self.cons['con_rsi14_up2'].iloc[-1]) and self.cons['con_rsi14_up'].iloc[-5:-1].any():
                     self.final_U += 'rsi'
-                if self.final_U in ['O' , 'Or', 'Oj', 'Ojr']:
+                if self.final_U in ['O', 'Or', 'Oj', 'Ojr']:
                     l = list(self.cons['cycle'][self.starting_index::])
                     res123 = l.index([idx for idx in l if idx.startswith('O')][0])
-                    if self.cons['con_sma10'][self.starting_index + res123 ]:
+                    if self.cons['con_sma10'][self.starting_index + res123]:
                         self.final_U += 'sma'
+
+                if self.divergence:
+                    self.final_U += 'div'
 
         return self.final_U
 
@@ -531,18 +575,21 @@ class Conditions(Datafeed):
                 if self.final_D in ['O', 'Or', 'Oj', 'Ojr']:
                     l = list(self.cons_D['cycle'][self.starting_index_D::])
                     res123 = l.index([idx for idx in l if idx.startswith('O')][0])
-                    if self.cons_D['con_sma10'][self.starting_index_D + res123 ]:
+                    if self.cons_D['con_sma10'][self.starting_index_D + res123]:
                         self.final_D += 'sma'
 
+                if self.divergence_D:
+                    self.final_D += 'div'
         return self.final_D
 
     def signal(self):
-        if self.final_U != 'chay':
+        if self.final_U != 'chay' :
             self.final = self.final_U
         elif self.final_D != 'chay':
             self.final = self.final_D
         else:
             self.final = 'chay'
+
         return self.final
 
     def Traitement(self):
@@ -556,6 +603,7 @@ class Conditions(Datafeed):
         self.con_rsi14_up()
         # if self.TF != mt5.TIMEFRAME_D1:
         self.con_rsi14_up2()
+        self.con_diver()
         self.v_ou_j()
         self.O_ou_Oj()
         self.ini()
@@ -642,7 +690,7 @@ class Eng(Datafeed):
                                                                       'ema_tf' + str(self.TF) + '_50'].shift(+1))
 
         self.cons_eng_D['acc'] = (self.cons_eng_D['acc_prime_2' + '_' + str(rsi)]) & (
-                    self.df['close_tf' + str(self.TF)] > self.df['high_tf' + str(self.TF)].shift(+1)) & (
+                self.df['close_tf' + str(self.TF)] > self.df['high_tf' + str(self.TF)].shift(+1)) & (
                                          self.df['rsi_tf' + str(self.TF) + '_' + str(rsi)] > 25)
 
         self.starting_index_eng_D = self.cons_eng_D['acc'][::-1].idxmax()
@@ -850,7 +898,7 @@ class Manage(Conditions, Eng):
         dt = datetime.now()
         updated = []
         if dt.second == 1:
-            #db.drop_all()
+            # db.drop_all()
             df_final['M2'] = list(map(self.update_map_M2, self.currencys))
             df_final_eng['M2'] = list(map(self.update_map_M2_eng, self.currencys))
             updated.append('M2 Updated')
@@ -888,7 +936,6 @@ class Manage(Conditions, Eng):
             print(updated)
             print(df_final)
             print(df_final_eng)
-
 
 
 '''
@@ -1133,12 +1180,16 @@ mini = ['M2', 'M5', 'M15', 'H1', 'H4', 'D1']
 for i in mini:
     if i != 'D1':
         for j in range(len(d) - 1):
-            if (d[i][j] == 'O' or d[i][j] == 'Oj' or d[i][j] == 'Orsi' or d[i][j] == 'Ojrsi' or d[i][j] == 'Osma' or d[i][j] == 'Ojsma' or d[i][j] == 'Orsisma' or d[i][j] == 'Ojrsisma') and (
+            if (d[i][j] == 'O' or d[i][j] == 'Oj' or d[i][j] == 'Orsi' or d[i][j] == 'Ojrsi' or d[i][j] == 'Osma' or
+                d[i][j] == 'Ojsma' or d[i][j] == 'Orsisma' or d[i][j] == 'Ojrsisma' or d[i][j] == 'Odiv' or d[i][j] == 'Ojdiv' or d[i][j] == 'Orsidiv' or d[i][j] == 'Ojrsidiv' or d[i][j] == 'Osmadiv' or
+                d[i][j] == 'Ojsmadiv' or d[i][j] == 'Orsismadiv' or d[i][j] == 'Ojrsismadiv') and (
                     d_eng[mini[mini.index(i) + 1]][j] == 'D' or d_eng[mini[mini.index(i) + 1]][j] == 'D_3' or
                     d_eng[mini[mini.index(i) + 1]][j] == 'D_14'):
                 d[i][j] = 'X'
                 chime.success()
-            if (d[i][j] == 'Or' or d[i][j] == 'Ojr'  or d[i][j] == 'Orrsi' or d[i][j] == 'Ojrrsi' or d[i][j] == 'Orsma' or d[i][j] == 'Ojrsma'  or d[i][j] == 'Orrsisma' or d[i][j] == 'Ojrrsisma') and (
+            if (d[i][j] == 'Or' or d[i][j] == 'Ojr' or d[i][j] == 'Orrsi' or d[i][j] == 'Ojrrsi' or d[i][
+                j] == 'Orsma' or d[i][j] == 'Ojrsma' or d[i][j] == 'Orrsisma' or d[i][j] == 'Ojrrsisma' or d[i][j] == 'Ordiv' or d[i][j] == 'Ojrdiv' or d[i][j] == 'Orrsidiv' or d[i][j] == 'Ojrrsidiv' or d[i][
+                j] == 'Orsmadiv' or d[i][j] == 'Ojrsmadiv' or d[i][j] == 'Orrsismadiv' or d[i][j] == 'Ojrrsismadiv') and (
                     d_eng[mini[mini.index(i) + 1]][j] == 'U' or d_eng[mini[mini.index(i) + 1]][j] == 'U_3' or
                     d_eng[mini[mini.index(i) + 1]][j] == 'U_14'):
                 d[i][j] = 'Xr'

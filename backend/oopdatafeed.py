@@ -10,6 +10,7 @@ import chime
 import numpy as np
 import os
 import json
+import threading
 
 from api import db
 from datetime import datetime
@@ -35,7 +36,7 @@ class Datafeed(object):
         while rates is None:
             pd.set_option('display.max_columns', 500)
             pd.set_option('display.width', 1500)
-            print(currency)
+            #print(currency)
             if not mt5.initialize(self.mt):
                 print("initialize() failed, error code =", mt5.last_error())
                 quit()
@@ -58,6 +59,7 @@ class Datafeed(object):
         down_chg_avg = down_chg.ewm(com=time_window - 1, min_periods=time_window).mean()
         rs = abs(up_chg_avg / down_chg_avg)
         rates_frame['rsi_tf' + str(self.TF) + '_' + str(time_window)] = 100 - 100 / (1 + rs)
+
         return rates_frame
 
     def compute_stock(self, rates_frame):
@@ -89,6 +91,8 @@ class Datafeed(object):
         rates_frame = self.getdata(currency, TF)
         self.computeRSI(rates_frame, 3)
         self.computeRSI(rates_frame, 14)
+        #self.computeRSI(rates_frame, 3)
+        #self.computeRSI(rates_frame, 14)
         self.compute_stock(rates_frame)
         self.computeTenken(rates_frame)
         period = 10
@@ -288,7 +292,6 @@ class Conditions(Datafeed):
             self.cons_D['all_trend_tfs'] = (
 
                     self.ema_cons_D['ema_ranked' + str(self.TF)] &
-
                     ((self.ema_cons_D['con_ema20_' + str(mt5.TIMEFRAME_M5)]) &
                      (self.ema_cons_D['con_ema50_' + str(mt5.TIMEFRAME_M5)])) &
                     ((self.ema_cons_D['con_ema20_' + str(mt5.TIMEFRAME_M15)]) &
@@ -377,11 +380,37 @@ class Conditions(Datafeed):
                                        'ema_tf' + str(self.TF) + '_' + str(12)]
         return self.cons
 
-    def con_acc(self):
-        self.cons['acc'] = ((self.cons['con_rsi3']) & (self.cons['con_rsi14_add']) & (self.cons['all_trend_tfs']))
+    def con_doura_7(self):
+        self.cons['doura_7'] = (
+                (self.df['ema_tf' + str(self.TF) + '_' + str(20)] > self.df['ema_tf' + str(self.TF) + '_' + str(50)]) &
+                ((self.df['ema_tf' + str(self.TF) + '_' + str(20)].shift(1) > self.df['ema_tf' + str(self.TF) + '_' + str(50)].shift(1)))&
+                ((self.df['ema_tf' + str(self.TF) + '_' + str(20)].shift(2) > self.df['ema_tf' + str(self.TF) + '_' + str(50)].shift(2)))&
+                ((self.df['ema_tf' + str(self.TF) + '_' + str(20)].shift(3) > self.df['ema_tf' + str(self.TF) + '_' + str(50)].shift(3)))&
+                ((self.df['ema_tf' + str(self.TF) + '_' + str(20)].shift(4) > self.df['ema_tf' + str(self.TF) + '_' + str(50)].shift(4)))&
+                ((self.df['ema_tf' + str(self.TF) + '_' + str(20)].shift(5) > self.df['ema_tf' + str(self.TF) + '_' + str(50)].shift(5)))&
+                ((self.df['ema_tf' + str(self.TF) + '_' + str(20)].shift(6) > self.df['ema_tf' + str(self.TF) + '_' + str(50)].shift(6)))
+                                )
         #######################
-        self.cons_D['acc'] = (
-                (self.cons_D['con_rsi3']) & (self.cons_D['con_rsi14_add']) & (self.cons_D['all_trend_tfs']))
+        self.cons_D['doura_7'] = (
+                (self.df['ema_tf' + str(self.TF) + '_' + str(20)] < self.df['ema_tf' + str(self.TF) + '_' + str(50)]) &
+                ((self.df['ema_tf' + str(self.TF) + '_' + str(20)].shift(1) < self.df['ema_tf' + str(self.TF) + '_' + str(50)].shift(1)))&
+                ((self.df['ema_tf' + str(self.TF) + '_' + str(20)].shift(2) < self.df['ema_tf' + str(self.TF) + '_' + str(50)].shift(2)))&
+                ((self.df['ema_tf' + str(self.TF) + '_' + str(20)].shift(3) < self.df['ema_tf' + str(self.TF) + '_' + str(50)].shift(3)))&
+                ((self.df['ema_tf' + str(self.TF) + '_' + str(20)].shift(4) < self.df['ema_tf' + str(self.TF) + '_' + str(50)].shift(4)))&
+                ((self.df['ema_tf' + str(self.TF) + '_' + str(20)].shift(5) < self.df['ema_tf' + str(self.TF) + '_' + str(50)].shift(5)))&
+                ((self.df['ema_tf' + str(self.TF) + '_' + str(20)].shift(6) < self.df['ema_tf' + str(self.TF) + '_' + str(50)].shift(6)))
+                                )
+
+    def con_doura_up(self):
+        self.cons['doura_up'] = (self.df['sma_tf' + str(self.tfs[self.tfs.index(self.TF) + 1]) + '_' + str(10)] > self.df['ema_tf' + str(self.tfs[self.tfs.index(self.TF) + 1]) + '_' + str(20)] > self.df['ema_tf' + str(self.tfs[self.tfs.index(self.TF) + 1]) + '_' + str(50)])
+        #######################
+        self.cons_D['doura_up'] = (self.df['sma_tf' + str(self.tfs[self.tfs.index(self.TF) + 1]) + '_' + str(10)] < self.df['ema_tf' + str(self.tfs[self.tfs.index(self.TF) + 1]) + '_' + str(20)] < self.df['ema_tf' + str(self.tfs[self.tfs.index(self.TF) + 1]) + '_' + str(50)])
+
+
+    def con_acc(self):
+        self.cons['acc'] = (self.cons['con_rsi3']) & (self.cons['con_rsi14_add']) & (self.cons['all_trend_tfs']) & (self.cons['doura_up'] & (self.cons['doura_7']))
+        #######################
+        self.cons_D['acc'] = (self.cons_D['con_rsi3']) & (self.cons_D['con_rsi14_add']) & (self.cons_D['all_trend_tfs']) & (self.cons_D['doura_up']) & (self.cons_D['doura_7'])
 
     def con_diver(self):
         rr = self.cons['acc'][::-1].idxmax()
@@ -390,7 +419,7 @@ class Conditions(Datafeed):
         rr3 = self.cons['acc'][:rr2][::-1].idxmin()
         rsidiv1 = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr1 + 1: rr + 1].max()
         rsidiv2 = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr3 + 1: rr2 + 1].max()
-        rsimindiv = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr3 + 1: rr2 + 1].min()
+        rsimindiv = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr2 + 1: rr1 + 1].min()
         if rsimindiv >= 50 and rsidiv1 < rsidiv2 and rsidiv1 <= 75:
             self.divergence = True
         else :
@@ -404,7 +433,7 @@ class Conditions(Datafeed):
         rr3_D = self.cons_D['acc'][:rr2_D][::-1].idxmin()
         rsidiv1_D = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr1_D + 1: rr_D + 1].min()
         rsidiv2_D = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr3_D + 1: rr2_D + 1].min()
-        rsimindiv_D = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr3_D + 1: rr2_D + 1].max()
+        rsimindiv_D = self.df['rsi_tf' + str(self.TF) + '_14'].iloc[rr2_D + 1: rr1_D + 1].max()
         if rsimindiv_D <= 50 and rsidiv1_D > rsidiv2_D and rsidiv1_D >= 25:
             self.divergence_D = True
         else :
@@ -485,20 +514,20 @@ class Conditions(Datafeed):
         if self.starting_index is not None:
             self.cons['cycle'].iloc[self.starting_index] = 'v'
             for i in range(self.starting_index, len(self.cons)):
-                if self.cons['cycle'].iloc[i - 1] == 'v' and self.df['stock_tf' + str(self.TF)].iloc[i] > 25 and \
+                if self.cons['cycle'].iloc[i - 1] == 'v' and self.df['stock_tf' + str(self.TF)].iloc[i] >= 25 and \
                         self.cons['init'].iloc[i] == False and self.df['close_tf' + str(self.TF)].iloc[i] > \
                         self.df['ema_tf' + str(self.TF) + '_' + str(12)].iloc[i]:
                     self.cons['cycle'].iloc[i] = 'v'
                 elif self.cons['j'].iloc[i] and self.cons['cycle'].iloc[i - 1] == 'chay':
                     self.cons['cycle'].iloc[i] = 'j'
-                elif self.cons['cycle'].iloc[i - 1] == 'j' and self.df['stock_tf' + str(self.TF)].iloc[i] > 25 and \
+                elif self.cons['cycle'].iloc[i - 1] == 'j' and self.df['stock_tf' + str(self.TF)].iloc[i] >= 25 and \
                         self.cons['init'].iloc[i] == False:
                     self.cons['cycle'].iloc[i] = 'j'
                 elif (self.cons['O'].iloc[i] or self.cons['Oj'].iloc[i]) and self.cons['cycle'].iloc[i - 1] == 'v' and \
                         self.df['close_tf' + str(self.TF)].iloc[i] > \
                         self.df['ema_tf' + str(self.TF) + '_' + str(12)].iloc[i]:
                     self.cons['cycle'].iloc[i] = 'O'
-                elif self.cons['cycle'].iloc[i - 1] == 'O' and self.df['stock_tf' + str(self.TF)].iloc[i] < 75 and \
+                elif self.cons['cycle'].iloc[i - 1] == 'O' and self.df['stock_tf' + str(self.TF)].iloc[i] <= 75 and \
                         self.df['close_tf' + str(self.TF)].iloc[i] > \
                         self.df['ema_tf' + str(self.TF) + '_' + str(50)].iloc[i]:
                     self.cons['cycle'].iloc[i] = 'O'
@@ -506,7 +535,7 @@ class Conditions(Datafeed):
                         self.df['close_tf' + str(self.TF)].iloc[i] > \
                         self.df['ema_tf' + str(self.TF) + '_' + str(12)].iloc[i]:
                     self.cons['cycle'].iloc[i] = 'Oj'
-                elif self.cons['cycle'].iloc[i - 1] == 'Oj' and self.df['stock_tf' + str(self.TF)].iloc[i] < 75 and \
+                elif self.cons['cycle'].iloc[i - 1] == 'Oj' and self.df['stock_tf' + str(self.TF)].iloc[i] <= 75 and \
                         self.df['close_tf' + str(self.TF)].iloc[i] > \
                         self.df['ema_tf' + str(self.TF) + '_' + str(50)].iloc[i]:
                     self.cons['cycle'].iloc[i] = 'Oj'
@@ -517,14 +546,14 @@ class Conditions(Datafeed):
         if self.starting_index_D is not None:
             self.cons_D['cycle'].iloc[self.starting_index_D] = 'r'
             for i in range(self.starting_index_D, len(self.cons_D)):
-                if self.cons_D['cycle'].iloc[i - 1] == 'r' and self.df['stock_tf' + str(self.TF)].iloc[i] < 75 and \
+                if self.cons_D['cycle'].iloc[i - 1] == 'r' and self.df['stock_tf' + str(self.TF)].iloc[i] <= 75 and \
                         self.cons_D['init'].iloc[
                             i] == False and self.df['close_tf' + str(self.TF)].iloc[i] < \
                         self.df['ema_tf' + str(self.TF) + '_' + str(12)].iloc[i]:
                     self.cons_D['cycle'].iloc[i] = 'r'
                 elif self.cons_D['j'].iloc[i] and self.cons_D['cycle'].iloc[i - 1] == 'chay':
                     self.cons_D['cycle'].iloc[i] = 'j'
-                elif self.cons_D['cycle'].iloc[i - 1] == 'j' and self.df['stock_tf' + str(self.TF)].iloc[i] < 75 and \
+                elif self.cons_D['cycle'].iloc[i - 1] == 'j' and self.df['stock_tf' + str(self.TF)].iloc[i] <= 75 and \
                         self.cons_D['init'].iloc[
                             i] == False:
                     self.cons_D['cycle'].iloc[i] = 'j'
@@ -533,7 +562,7 @@ class Conditions(Datafeed):
                         self.df['close_tf' + str(self.TF)].iloc[i] < \
                         self.df['ema_tf' + str(self.TF) + '_' + str(12)].iloc[i]:
                     self.cons_D['cycle'].iloc[i] = 'Or'
-                elif self.cons_D['cycle'].iloc[i - 1] == 'Or' and (self.df['stock_tf' + str(self.TF)].iloc[i] > 25) and \
+                elif self.cons_D['cycle'].iloc[i - 1] == 'Or' and (self.df['stock_tf' + str(self.TF)].iloc[i] >= 25) and \
                         self.df['close_tf' + str(self.TF)].iloc[i] < \
                         self.df['ema_tf' + str(self.TF) + '_' + str(50)].iloc[i]:
                     self.cons_D['cycle'].iloc[i] = 'Or'
@@ -542,7 +571,7 @@ class Conditions(Datafeed):
                         self.df['close_tf' + str(self.TF)].iloc[i] < \
                         self.df['ema_tf' + str(self.TF) + '_' + str(12)].iloc[i]:
                     self.cons_D['cycle'].iloc[i] = 'Ojr'
-                elif self.cons_D['cycle'].iloc[i - 1] == 'Ojr' and (self.df['stock_tf' + str(self.TF)].iloc[i] > 25) and \
+                elif self.cons_D['cycle'].iloc[i - 1] == 'Ojr' and (self.df['stock_tf' + str(self.TF)].iloc[i] >= 25) and \
                         self.df['close_tf' + str(self.TF)].iloc[i] < \
                         self.df['ema_tf' + str(self.TF) + '_' + str(50)].iloc[i]:
                     self.cons_D['cycle'].iloc[i] = 'Ojr'
@@ -597,8 +626,11 @@ class Conditions(Datafeed):
         self.con_rsi()
         self.con_tendence()
         self.con_stock()
+        self.con_doura_7()
+        self.con_doura_up()
         self.con_acc()
         self.con_sma_acc()
+
         self.trt()
         self.con_rsi14_up()
         # if self.TF != mt5.TIMEFRAME_D1:
